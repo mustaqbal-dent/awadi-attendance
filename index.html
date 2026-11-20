@@ -8,22 +8,109 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>نظام الحضور والغياب</title>
 <style>
+  * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: #e6f3f4; font-family: system-ui, "Segoe UI", Tahoma, sans-serif; }
-  #wait { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; color: #0d5f67; text-align: center; padding: 16px; }
+
+  /* ===== السماء ===== */
+  #wait {
+    position: fixed; inset: 0; overflow: hidden; display: grid; place-items: center; padding: 24px;
+    background:
+      radial-gradient(circle at 78% 22%, rgba(255,236,200,.9) 0, rgba(255,236,200,0) 28%),
+      linear-gradient(180deg, #cfe9f1 0%, #e9f6f7 55%, #f6fbfb 100%);
+    transition: opacity .7s ease, visibility 0s linear .7s;
+  }
+  #wait.done { opacity: 0; visibility: hidden; }
+
+  /* ===== سرب العصافير ===== */
+  .bird { position: absolute; right: -40px; animation: fly linear infinite; }
+  .bird i { display: block; position: relative; width: 26px; height: 10px; animation: bob 3s ease-in-out infinite; }
+  .bird i::before, .bird i::after {
+    content: ""; position: absolute; top: 4px; width: 14px; height: 2.4px; border-radius: 2px; background: #2c6d74;
+    animation: flap .5s ease-in-out infinite alternate;
+  }
+  .bird i::before { right: 12px; transform-origin: right center; }
+  .bird i::after  { left: 12px;  transform-origin: left center; animation-name: flap2; }
+  @keyframes flap  { from { transform: rotate(28deg); }  to { transform: rotate(-18deg); } }
+  @keyframes flap2 { from { transform: rotate(-28deg); } to { transform: rotate(18deg); } }
+  @keyframes bob   { 50% { transform: translateY(-14px); } }
+  @keyframes fly   { to { transform: translateX(calc(-100vw - 80px)); } }
+
+  /* ===== البطاقة ===== */
+  .card {
+    position: relative; z-index: 1; width: min(380px, 100%); padding: 36px 26px 28px; text-align: center; color: #0d5f67;
+    background: rgba(255,255,255,.72); border: 1px solid rgba(255,255,255,.9); border-radius: 24px;
+    box-shadow: 0 24px 60px -24px rgba(13,95,103,.35);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    animation: rise .8s cubic-bezier(.2,.8,.2,1) both;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+
+  .logo {
+    width: 64px; height: 64px; margin: 0 auto 18px; border-radius: 20px; display: grid; place-items: center;
+    background: linear-gradient(145deg, #1a9aa5, #0d5f67); box-shadow: 0 10px 22px -8px rgba(19,125,135,.6);
+  }
+  .logo svg { width: 32px; height: 32px; }
+  .logo .check { stroke-dasharray: 12; stroke-dashoffset: 12; animation: draw .6s .6s ease forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+
+  h1 { margin: 0 0 6px; font-size: 1.3rem; }
+  .sub { margin: 0; font-size: .9rem; color: #5b8f94; }
+
+  .line { height: 3px; margin: 22px auto; width: 70%; border-radius: 9px; background: rgba(19,125,135,.12); overflow: hidden; position: relative; }
+  .line::before { content: ""; position: absolute; inset: 0; width: 35%; border-radius: inherit; background: linear-gradient(90deg, transparent, #137d87); animation: load 1.4s ease-in-out infinite; }
+  @keyframes load { from { transform: translateX(110%); } to { transform: translateX(-310%); } }
+
+  .quote { margin: 0; font-size: .92rem; line-height: 1.9; color: #3d7c82; }
+
   /* credentialless: يفتح النظام بدون حسابات Google المسجّلة في المتصفح،
      فلا يظهر خطأ "يتعذر فتح الملف" في كروم عند وجود أكثر من حساب */
-  iframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; opacity: 0; }
+  iframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; opacity: 0; transition: opacity .7s ease; }
   iframe.ready { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
 </style>
 </head>
 <body>
-<div id="wait">جارٍ فتح نظام الحضور والغياب…<br> «ليس كل من يعمل يُبدع، فالعطاء الحقيقي أن تترك في عملك بصمة إتقان.»🌿</div>
-<iframe credentialless title="نظام الحضور والغياب" allow="clipboard-write"></iframe>
-<script>
-  const frame = document.querySelector('iframe');
-  frame.onload = () => frame.classList.add('ready');
-  frame.src = 'https://script.google.com/macros/s/AKfycbzsUaT9Y2fkIq37SrVLrX6EkMrhUFBm9YXGznF0RUxsh1G6QUMxw1Qgsi0Ywh4fyieO/exec'; // يُضبط بعد credentialless حتى يُطبَّق من أول طلب
+<div id="wait">
+  <div id="flock" aria-hidden="true"></div>
 
+  <div class="card">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="8" y="2" width="8" height="4" rx="1"/>
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+        <path class="check" d="M9 14l2 2 4-4"/>
+      </svg>
+    </div>
+    <h1>نظام الحضور والغياب</h1>
+    <p class="sub">جارٍ فتح النظام…</p>
+    <div class="line"></div>
+    <p class="quote">«ليس كل من يعمل يُبدع، فالعطاء الحقيقي أن تترك في عملك بصمة إتقان.» 🌿</p>
+  </div>
+</div>
+
+<iframe credentialless title="نظام الحضور والغياب" allow="clipboard-write"></iframe>
+
+<script>
+  // سرب عصافير يعبر السماء بهدوء
+  const flock = document.getElementById('flock');
+  for (let i = 0; i < 9; i++) {
+    const b = document.createElement('div');
+    const s = .55 + Math.random() * .6;            // الحجم (الأصغر يبدو أبعد)
+    const dur = 14 + (1.2 - s) * 18 + Math.random() * 4;
+    b.className = 'bird';
+    b.style.top = (6 + Math.random() * 30) + '%';
+    b.style.opacity = .45 + s * .4;
+    b.style.scale = s;
+    b.style.animationDuration = dur + 's';
+    b.style.animationDelay = (-Math.random() * dur) + 's';
+    b.innerHTML = '<i style="animation-delay:' + (-Math.random() * 3) + 's"></i>';
+    flock.appendChild(b);
+  }
+
+  const frame = document.querySelector('iframe');
+  frame.onload = () => { frame.classList.add('ready'); document.getElementById('wait').classList.add('done'); };
+  frame.src = 'https://script.google.com/macros/s/AKfycbzsUaT9Y2fkIq37SrVLrX6EkMrhUFBm9YXGznF0RUxsh1G6QUMxw1Qgsi0Ywh4fyieO/exec'; // يُضبط بعد credentialless حتى يُطبَّق من أول طلب
   // بقاء الجلسة ساعة عند تحديث الصفحة: تخزين الإطار credentialless يُمحى مع كل تحديث،
   // فيطلب النظام من هذه الصفحة حفظ رمز الجلسة (sessionStorage: يُمحى بإغلاق التبويب).
   addEventListener('message', e => {
